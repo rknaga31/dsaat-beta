@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SensorReading",
+  "description": "Standard schema for physiological and biometric readings provided by device_integration module.",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "heart_rate_bpm",
+    "source",
+    "data_status",
+    "last_reading_timestamp"
+  ],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp when this sample packet was emitted."
+    },
+    "heart_rate_bpm": {
+      "type": ["number", "null"],
+      "minimum": 30,
+      "maximum": 240,
+      "description": "Current heart rate in beats per minute. MUST be null if reading is unavailable; NEVER represent missing data as 0."
+    },
+    "source": {
+      "type": "string",
+      "description": "Hardware adapter or generator source (e.g. 'boult_ble', 'simulated', 'manual_inject')."
+    },
+    "data_status": {
+      "type": "string",
+      "enum": [
+        "CONNECTED_LIVE",
+        "CONNECTED_HISTORICAL",
+        "SIMULATED_DEMO",
+        "UNAVAILABLE",
+        "STALE_DATA",
+        "LIVE",
+        "SIMULATED",
+        "STALE"
+      ],
+      "description": "Integrity flag. Explicitly distinguishes genuine live BLE, historical health connect, simulated demo, stale, and unavailable."
+    },
+    "last_reading_timestamp": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Timestamp of the last verified reading from the sensor, or null if never connected."
+    },
+    "device_battery_percent": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Optional battery percentage reported by the peripheral."
+    },
+    "connection_status": {
+      "type": "boolean",
+      "description": "True if sensor device is currently connected and active."
+    },
+    "data_freshness_seconds": {
+      "type": ["number", "null"],
+      "description": "Elapsed seconds since reading was captured."
+    },
+    "error_state": {
+      "type": ["string", "null"],
+      "description": "Descriptive hardware or connection error details, if any."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RiskState",
+  "description": "Standard schema for multimodal risk classification emitted by backend risk engine.",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "state",
+    "risk_score",
+    "contributing_reasons",
+    "monitoring_reliable"
+  ],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp of the fused risk assessment."
+    },
+    "state": {
+      "type": "string",
+      "enum": ["NORMAL", "WARNING", "HIGH_RISK", "MONITORING_UNAVAILABLE"],
+      "description": "Categorical risk classification state."
+    },
+    "risk_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Normalized composite risk score on a scale from 0.0 to 100.0."
+    },
+    "contributing_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of human-readable rationale items explaining why the state was evaluated (e.g. 'Prolonged eye closure (2.1s)', 'Abnormal heart rate (48 bpm)')."
+    },
+    "monitoring_reliable": {
+      "type": "boolean",
+      "description": "True if sufficient input telemetry was available and reliable to form a valid risk assessment."
+    },
+    "vision_snapshot": {
+      "type": ["object", "null"],
+      "description": "Optional snapshot of the vision event that triggered or fed this state."
+    },
+    "sensor_snapshot": {
+      "type": ["object", "null"],
+      "description": "Optional snapshot of the sensor reading that triggered or fed this state."
+    }
+  },
+  "additionalProperties": false
+}

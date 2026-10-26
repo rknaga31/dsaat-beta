@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VisionEvent",
+  "description": "Standard schema for real-time computer vision inference events emitted by ai_vision module.",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "face_detected",
+    "eye_status",
+    "eye_closure_duration_ms",
+    "yawn_detected",
+    "head_nod_detected",
+    "tracking_reliable"
+  ],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp of frame capture and analysis."
+    },
+    "face_detected": {
+      "type": "boolean",
+      "description": "True if a primary driver face was detected in the frame."
+    },
+    "eye_status": {
+      "type": "string",
+      "enum": ["OPEN", "CLOSED", "PARTIAL", "UNKNOWN"],
+      "description": "Current assessed ocular aperture state."
+    },
+    "eye_closure_duration_ms": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Continuous duration in milliseconds for which eyes have remained closed."
+    },
+    "yawn_detected": {
+      "type": "boolean",
+      "description": "True if mouth aspect ratio (MAR) indicates sustained yawning."
+    },
+    "head_nod_detected": {
+      "type": "boolean",
+      "description": "True if head pose pitch estimation indicates a drowsy nodding motion."
+    },
+    "tracking_reliable": {
+      "type": "boolean",
+      "description": "True if lighting and facial landmark confidence exceed minimum reliability threshold."
+    },
+    "ear_score": {
+      "type": ["number", "null"],
+      "description": "Optional Eye Aspect Ratio (EAR) metric for telemetry/diagnostics."
+    },
+    "mar_score": {
+      "type": ["number", "null"],
+      "description": "Optional Mouth Aspect Ratio (MAR) metric for telemetry/diagnostics."
+    }
+  },
+  "additionalProperties": false
+}

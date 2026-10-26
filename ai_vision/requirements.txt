@@ -1,0 +1,7 @@
+# AI Vision Module Requirements
+opencv-python>=4.9.0
+mediapipe>=0.10.9
+numpy>=1.26.0
+scipy>=1.12.0
+requests>=2.31.0
+pytest>=8.0.0

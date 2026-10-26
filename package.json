@@ -1,0 +1,22 @@
+{
+  "name": "driver-drowsiness-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multimodal AI-Based Driver Drowsiness and Health Monitoring System",
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "lint:frontend": "npm --prefix frontend run lint",
+    "test:python": "pytest",
+    "check": "python scripts/setup_check.py"
+  },
+  "keywords": [
+    "driver-drowsiness",
+    "computer-vision",
+    "smartwatch-health",
+    "fastapi",
+    "multimodal-ai"
+  ],
+  "author": "Semester Project Team",
+  "license": "MIT"
+}
