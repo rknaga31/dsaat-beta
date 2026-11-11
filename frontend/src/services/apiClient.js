@@ -3,7 +3,18 @@
  * Centralized HTTP service for interacting with the FastAPI backend.
  */
 
-const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1';
+const getApiBaseUrl = () => {
+  if (import.meta.env?.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname || '127.0.0.1';
+    return `http://${host}:8000/api/v1`;
+  }
+  return 'http://127.0.0.1:8000/api/v1';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export async function fetchMonitoringStatus() {
   try {

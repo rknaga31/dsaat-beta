@@ -9,14 +9,21 @@ from alerts_sos.beep_manager import BeepManager
 from alerts_sos.sms_provider import BaseSMSProvider
 from alerts_sos.mock_sms_provider import MockSMSProvider
 from alerts_sos.real_sms_provider import TwilioSMSProvider, Fast2SMSProvider
+from alerts_sos.free_providers import EmailNotificationProvider, TelegramNotificationProvider
 from alerts_sos.family_notification import FamilyNotificationService
 from alerts_sos.escalation_manager import EscalationManager
 
 
 def get_sms_provider(provider_name: Optional[str] = None) -> BaseSMSProvider:
-    """Factory creating configured SMS provider, defaulting to MockSMSProvider for safety."""
+    """Factory creating configured alert provider (Email, Telegram, Twilio, Fast2SMS, or Mock)."""
     p_name = (provider_name or os.getenv("SMS_PROVIDER", "mock")).lower().strip()
-    if p_name == "twilio":
+    if p_name in ("email", "smtp", "gmail"):
+        email_prov = EmailNotificationProvider()
+        return email_prov
+    elif p_name == "telegram":
+        tg_prov = TelegramNotificationProvider()
+        return tg_prov
+    elif p_name == "twilio":
         twilio_prov = TwilioSMSProvider()
         if twilio_prov.is_configured:
             return twilio_prov
@@ -48,6 +55,8 @@ __all__ = [
     "MockSMSProvider",
     "TwilioSMSProvider",
     "Fast2SMSProvider",
+    "EmailNotificationProvider",
+    "TelegramNotificationProvider",
     "FamilyNotificationService",
     "EscalationManager",
     "get_sms_provider",

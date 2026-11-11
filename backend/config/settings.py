@@ -20,14 +20,15 @@ class Settings:
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
     # Network Host & Port
-    BACKEND_HOST: str = os.getenv("BACKEND_HOST", "127.0.0.1")
+    BACKEND_HOST: str = os.getenv("BACKEND_HOST", "0.0.0.0")
     BACKEND_PORT: int = int(os.getenv("BACKEND_PORT", "8000"))
 
     # CORS Allowed Origins
     ALLOWED_ORIGINS: List[str] = [
         origin.strip()
         for origin in os.getenv(
-            "ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+            "ALLOWED_ORIGINS",
+            "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000",
         ).split(",")
         if origin.strip()
     ]
@@ -43,6 +44,17 @@ class Settings:
     ALERT_SMS_COOLDOWN_SECONDS: int = int(os.getenv("ALERT_SMS_COOLDOWN_SECONDS", "120"))
     ALERT_DEBOUNCE_WINDOW_MS: int = int(os.getenv("ALERT_DEBOUNCE_WINDOW_MS", "500"))
     ALERT_ACK_WINDOW_SECONDS: float = float(os.getenv("ALERT_ACK_WINDOW_SECONDS", "10.0"))
+
+    # Free Email Alert Configuration (Zero-cost via Gmail / Outlook SMTP)
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: str = os.getenv("SMTP_USER", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+    EMERGENCY_CONTACT_EMAIL: str = os.getenv("EMERGENCY_CONTACT_EMAIL", "")
+
+    # Free Telegram Bot Configuration (Zero-cost via Telegram API)
+    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
 
     # Emergency Contact
     EMERGENCY_CONTACT_PHONE: str = os.getenv("EMERGENCY_CONTACT_PHONE", "+910000000000")

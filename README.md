@@ -90,22 +90,25 @@ The SMS message is formulated carefully without making false medical diagnosis c
 
 ---
 
-### Section 4: Hardware & Real-World Integration
+### Section 4: Hardware, Free Alerts & Real-World Integration
 
-D-SAAT is designed for real-world hardware while being completely honest about device limitations:
+D-SAAT is designed for real-world hardware while offering 100% free-of-cost operational pipelines:
 
-1. **Boult Smartwatches & Budget Wearables**:
-   - Budget consumer smartwatches (Boult Drift, Striker, Crown, Ridge) pair with proprietary mobile apps (Boult Fit / Da Fit) and do not provide an open cloud API.
-   - D-SAAT includes a built-in **Compatibility Audit tool** that scans for Bluetooth SIG Heart Rate Service `0x180D`.
-   - If direct BLE is locked, D-SAAT provides an open **Google Health Connect bridge** over local Wi-Fi, allowing any Android phone to forward heart rate telemetry to the system.
-   - For demonstrations, a **Zero-Hardware Simulator** allows testing Normal (74 BPM), Drowsy (48 BPM), Panic (122 BPM), and Stale states with one tap.
+1. **Smartwatch Biometrics (Core Idea & Future Enhancement Roadmap)**:
+   - **Core Concept**: Fusing facial vision with physiological heart rate (BPM / HRV) to detect microsleep and autonomic drowsiness (bradycardia < 50 BPM).
+   - **Phase 1 (Current State)**: Fully functional via **mathematical fusion**, safe graceful fallback, and a one-click **Zero-Hardware Simulator Strip** (Normal 74 BPM, Drowsy 48 BPM, Panic 122 BPM, Stale 25s, Disconnected). If physical hardware is not present, the system operates reliably on camera vision + GPS without crashing.
+   - **Phase 2 (Future Enhancement)**: Physical Bluetooth LE hardware pairing with consumer wearables (boAt Storm Infinity, Boult, Noise) via companion Android background daemons or direct BLE GATT `0x180D`.
 
-2. **Android Phone GPS Bridge**:
-   - Modern mobile Chrome blocks browser GPS on plain HTTP over local networks.
-   - D-SAAT solves this by providing a lightweight HTTP webhook (`POST /api/v1/sensors/gps`). Android automation tools (such as **GPS Logger** or **MacroDroid**) can push real-time satellite coordinates directly over Wi-Fi without needing HTTPS.
+2. **100% Free GPS Location Detection (Satellite & Browser Positioning)**:
+   - **Browser Geolocation API**: Built into the dashboard (`navigator.geolocation`) — tracks real-time latitude, longitude, and speed for **$0.00** without third-party API keys.
+   - **Android GPS Bridge**: Lightweight webhook (`POST /api/v1/sensors/gps`) compatible with free Android apps (**GPS Logger for Android**, **MacroDroid**) to stream satellite GPS coordinates over local Wi-Fi.
+   - **Zero-Cost Google Maps Pin**: Automatically constructs standard clickable location links (`https://maps.google.com/?q={lat},{lon}`) without requiring paid Google Maps billing.
 
-3. **In-Cabin Audio Buzzer**:
-   - Uses multi-frequency sound generation (800 Hz info chime, 1500 Hz fatigue tone, 2500 Hz high-pitch alarm) via the browser's native **Web Audio API** and a non-blocking daemon buzzer in Python.
+3. **100% Free Emergency Alert Dispatch (Zero Paid APIs Required)**:
+   - **Free Email Alerts (Gmail / Outlook SMTP)**: Built-in Python `smtplib` delivers instant HTML emergency alerts with live Google Maps pins and driver fatigue metrics directly to family inboxes for **$0.00**.
+   - **Free Telegram Bot Notifications**: Delivers instant push notifications with alert sounds to family phones via the free Telegram Bot API.
+   - **In-Cabin Audio Siren**: Non-blocking multi-frequency sound synthesis (800 Hz chime, 1500–2500 Hz siren) via Web Audio API and system buzzers.
+   - Detailed setup guide: [Free GPS & Alerts Setup Guide](docs/free_gps_and_alerts_guide.md).
 
 ---
 
@@ -122,7 +125,7 @@ D-SAAT is built using modern, fast, and production-tested technologies:
 | **Audio Engine** | Web Audio API | Frequency-shifting cabin buzzer alarms |
 | **Backend API** | FastAPI + Python 3.11+ | High-throughput asynchronous REST gateway |
 | **Data Integrity** | Pydantic v2 + JSON Schema | Strict boundary validation for medical & GPS data |
-| **Notifications** | Twilio SMS + Mock Provider | Safe emergency alert delivery pipeline |
+| **Free Emergency Alerts** | Gmail SMTP + Telegram Bot + Mock | 100% free emergency notification delivery |
 
 ---
 

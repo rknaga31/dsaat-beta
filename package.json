@@ -4,6 +4,8 @@
   "private": true,
   "description": "Multimodal AI-Based Driver Drowsiness and Health Monitoring System",
   "scripts": {
+    "dev": "python scripts/run_development.py all",
+    "dev:backend": "python scripts/run_development.py backend",
     "dev:frontend": "npm --prefix frontend run dev",
     "build:frontend": "npm --prefix frontend run build",
     "lint:frontend": "npm --prefix frontend run lint",
