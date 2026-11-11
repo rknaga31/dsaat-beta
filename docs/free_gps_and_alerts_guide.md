@@ -139,3 +139,4 @@ D-SAAT uses browser **Web Audio API** and Python `winsound` / daemon buzzers:
 | **Family Alert via Email** | Python `smtplib` + Gmail App Password | $0.00 | $0.00 | Free Gmail account |
 | **Family Alert via Telegram** | Telegram Bot API | $0.00 | $0.00 | Free Telegram account |
 | **Biometric Telemetry** | Simulated Vitals / Core Roadmap Architecture | $0.00 | $0.00 | No |
+

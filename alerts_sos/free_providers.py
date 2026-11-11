@@ -34,11 +34,13 @@ class EmailNotificationProvider(BaseSMSProvider):
         smtp_password: Optional[str] = None,
         default_recipient: Optional[str] = None,
     ):
-        self.smtp_host = smtp_host or os.getenv("SMTP_HOST", "smtp.gmail.com")
-        self.smtp_port = int(smtp_port or os.getenv("SMTP_PORT", "587"))
-        self.smtp_user = smtp_user or os.getenv("SMTP_USER", "")
-        self.smtp_password = smtp_password or os.getenv("SMTP_PASSWORD", "")
-        self.default_recipient = default_recipient or os.getenv("EMERGENCY_CONTACT_EMAIL", "")
+        self.smtp_host = (smtp_host or os.getenv("SMTP_HOST", "smtp.gmail.com")).strip()
+        self.smtp_port = int(smtp_port or os.getenv("SMTP_PORT", "465"))
+        self.smtp_user = (smtp_user or os.getenv("SMTP_USER", "")).strip()
+        # Clean App Password: strip spaces and quotes (Google displays passwords in 4x4 blocks like 'abcd efgh ijkl mnop')
+        raw_pw = smtp_password or os.getenv("SMTP_PASSWORD", "")
+        self.smtp_password = raw_pw.replace(" ", "").replace('"', '').replace("'", "").strip()
+        self.default_recipient = (default_recipient or os.getenv("EMERGENCY_CONTACT_EMAIL", "")).strip()
 
     @property
     def provider_name(self) -> str:
@@ -93,13 +95,34 @@ class EmailNotificationProvider(BaseSMSProvider):
             msg.attach(MIMEText(plain_text, "plain"))
             msg.attach(MIMEText(html_text, "html"))
 
-            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10.0) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
+            # Transmit via SMTP with automatic Port 587 (STARTTLS) and Port 465 (Direct SSL) fallback
+            sent = False
+            # Try configured port first
+            if self.smtp_port == 465:
+                with smtplib.SMTP_SSL(self.smtp_host, 465, timeout=10.0) as server:
+                    server.login(self.smtp_user, self.smtp_password)
+                    server.send_message(msg)
+                    sent = True
+            else:
+                try:
+                    with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10.0) as server:
+                        server.ehlo()
+                        server.starttls()
+                        server.ehlo()
+                        server.login(self.smtp_user, self.smtp_password)
+                        server.send_message(msg)
+                        sent = True
+                except Exception as exc_587:
+                    logger.warning(f"SMTP Port {self.smtp_port} failed ({exc_587}). Retrying with direct SSL on port 465...")
+                    with smtplib.SMTP_SSL(self.smtp_host, 465, timeout=10.0) as server:
+                        server.login(self.smtp_user, self.smtp_password)
+                        server.send_message(msg)
+                        sent = True
 
-            logger.info(f"[FREE EMAIL SENT] Emergency alert successfully emailed to {target_email}")
-            return True
+            if sent:
+                logger.info(f"[FREE EMAIL SENT] Emergency alert successfully emailed to {target_email}")
+                return True
+            return False
 
         except Exception as exc:
             logger.error(f"[EMAIL SEND FAILED] Error transmitting alert via SMTP: {exc}")
@@ -158,3 +181,4 @@ class TelegramNotificationProvider(BaseSMSProvider):
         except Exception as exc:
             logger.error(f"[TELEGRAM NETWORK ERROR] {exc}")
             return False
+
