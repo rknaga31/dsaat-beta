@@ -63,16 +63,31 @@ export function CameraFeed({ visionData, compact = false }) {
   const lastDispatchTimeRef = useRef(0);
   const faceMeshRef = useRef(null);
   const animFrameIdRef = useRef(null);
+  const isProcessingFrameRef = useRef(false);
+  const yawnHoldTimeoutRef = useRef(null);
 
   // Initialize MediaPipe FaceMesh
   useEffect(() => {
     let isMounted = true;
     async function loadFaceMesh() {
       try {
-        const { FaceMesh } = await import('@mediapipe/face_mesh');
-        const mesh = new FaceMesh({
-          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+        let FaceMeshClass = window.FaceMesh;
+        if (!FaceMeshClass) {
+          const mod = await import('@mediapipe/face_mesh');
+          FaceMeshClass = mod.FaceMesh || mod.default?.FaceMesh || mod.default;
+        }
+
+        if (!FaceMeshClass) {
+          throw new Error('FaceMesh constructor not found in global window or package');
+        }
+
+        const mesh = new FaceMeshClass({
+          locateFile: (file) => {
+            // First load from local public directory (instant, no CORS, works offline)
+            return `/mediapipe/face_mesh/${file}`;
+          },
         });
+
         mesh.setOptions({
           maxNumFaces: 1,
           refineLandmarks: true,
@@ -86,15 +101,37 @@ export function CameraFeed({ visionData, compact = false }) {
         });
 
         faceMeshRef.current = mesh;
-        setDetectorStatus('AI FaceMesh Loaded');
+        setDetectorStatus('AI FaceMesh Ready');
       } catch (err) {
-        console.warn('MediaPipe FaceMesh CDN load error, fallback active:', err);
-        setDetectorStatus('Visual Fallback Ready');
+        console.warn('FaceMesh local initialization, attempting CDN fallback...', err);
+        try {
+          const mod = await import('@mediapipe/face_mesh');
+          const FaceMeshClass = window.FaceMesh || mod.FaceMesh || mod.default?.FaceMesh || mod.default;
+          const mesh = new FaceMeshClass({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+          });
+          mesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5,
+          });
+          mesh.onResults((results) => {
+            if (!isMounted) return;
+            handleLandmarkResults(results);
+          });
+          faceMeshRef.current = mesh;
+          setDetectorStatus('AI FaceMesh (CDN) Ready');
+        } catch (e2) {
+          console.error('All FaceMesh loaders failed:', e2);
+          setDetectorStatus('Visual Fallback Ready');
+        }
       }
     }
     loadFaceMesh();
     return () => {
       isMounted = false;
+      if (yawnHoldTimeoutRef.current) clearTimeout(yawnHoldTimeoutRef.current);
       if (faceMeshRef.current?.close) {
         faceMeshRef.current.close();
       }
@@ -123,22 +160,22 @@ export function CameraFeed({ visionData, compact = false }) {
     const landmarks = results.multiFaceLandmarks[0];
     setLiveFaceDetected(true);
 
-    // 1. Calculate EAR for both eyes
+    // 1. Calculate EAR for both eyes (Calibrated: EAR < 0.24 is closed)
     const leftEar = calcEAR(landmarks, LEFT_EYE);
     const rightEar = calcEAR(landmarks, RIGHT_EYE);
     const ear = (leftEar + rightEar) / 2;
     setLiveEAR(parseFloat(ear.toFixed(2)));
 
-    // 2. Calculate MAR for mouth opening
+    // 2. Calculate MAR for mouth opening (Calibrated: MAR >= 0.44 is yawning)
     const mar = calcMAR(landmarks);
     setLiveMAR(parseFloat(mar.toFixed(2)));
 
     const now = performance.now();
 
-    // 3. Eye Closure Analysis
+    // 3. Responsive Eye Closure Analysis
     let currentClosure = 0;
     let eyeStat = EyeStatus.OPEN;
-    if (ear < 0.21) {
+    if (ear < 0.24) {
       eyeStat = EyeStatus.CLOSED;
       if (!closureStartTimeRef.current) {
         closureStartTimeRef.current = now;
@@ -159,26 +196,30 @@ export function CameraFeed({ visionData, compact = false }) {
     }
     setLiveEyeStatus(eyeStat);
 
-    // 4. Yawn Analysis (MAR > 0.55)
-    const isYawning = mar >= 0.55;
-    setLiveYawnDetected(isYawning);
-    if (isYawning) {
+    // 4. Natural Yawn Analysis (MAR >= 0.44 with 2.0s hold)
+    const mouthWideOpen = mar >= 0.44;
+    if (mouthWideOpen) {
+      setLiveYawnDetected(true);
       playWarningTone();
+      if (yawnHoldTimeoutRef.current) clearTimeout(yawnHoldTimeoutRef.current);
+      yawnHoldTimeoutRef.current = setTimeout(() => {
+        setLiveYawnDetected(false);
+      }, 2000);
     }
 
-    // 5. Draw Facial HUD with green neon box & mesh matching reference image
-    drawOverlayHUD(ctx, canvas, landmarks, ear, mar, isYawning, currentClosure);
+    // 5. Draw Facial HUD with neon brackets, mesh dots, and live telemetry overlay
+    drawOverlayHUD(ctx, canvas, landmarks, ear, mar, mouthWideOpen, currentClosure);
 
-    // 6. Rate-limited Dispatch to Backend API (every 350ms)
+    // 6. Rate-limited Dispatch to Backend API (every 300ms)
     const wallNow = Date.now();
-    if (wallNow - lastDispatchTimeRef.current >= 350) {
+    if (wallNow - lastDispatchTimeRef.current >= 300) {
       lastDispatchTimeRef.current = wallNow;
       sendVisionEvent({
         timestamp: new Date().toISOString(),
         face_detected: true,
         eye_status: eyeStat,
         eye_closure_duration_ms: currentClosure,
-        yawn_detected: isYawning,
+        yawn_detected: mouthWideOpen,
         head_nod_detected: false,
         tracking_reliable: true,
         ear_score: parseFloat(ear.toFixed(2)),
@@ -256,6 +297,22 @@ export function CameraFeed({ visionData, compact = false }) {
     ctx.stroke();
 
     ctx.restore();
+
+    // 4. Live Un-mirrored Telemetry Overlay in top-left
+    ctx.save();
+    ctx.font = 'bold 12px monospace';
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.8)';
+    ctx.fillRect(8, 8, 180, 48);
+    ctx.strokeStyle = boxColor;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(8, 8, 180, 48);
+
+    ctx.fillStyle = closureMs > 0 ? '#ef4444' : '#10b981';
+    ctx.fillText(`EAR: ${ear.toFixed(2)} [${closureMs > 0 ? `CLOSED ${(closureMs / 1000).toFixed(1)}s` : 'OPEN'}]`, 14, 26);
+
+    ctx.fillStyle = isYawning ? '#f59e0b' : '#38bdf8';
+    ctx.fillText(`MAR: ${mar.toFixed(2)} [${isYawning ? 'YAWN DETECTED!' : 'NORMAL'}]`, 14, 44);
+    ctx.restore();
   };
 
   // Start live webcam capture
@@ -296,14 +353,17 @@ export function CameraFeed({ visionData, compact = false }) {
     setLiveYawnDetected(false);
   };
 
-  // Continuous frame processing loop
+  // Continuous frame processing loop with non-blocking single-frame synchronization
   const startVisionProcessingLoop = () => {
     const processFrame = async () => {
-      if (videoRef.current && videoRef.current.readyState >= 2 && faceMeshRef.current) {
+      if (!isProcessingFrameRef.current && videoRef.current && videoRef.current.readyState >= 2 && faceMeshRef.current) {
+        isProcessingFrameRef.current = true;
         try {
           await faceMeshRef.current.send({ image: videoRef.current });
         } catch (e) {
           // Frame drop safe
+        } finally {
+          isProcessingFrameRef.current = false;
         }
       }
       animFrameIdRef.current = requestAnimationFrame(processFrame);
@@ -416,33 +476,41 @@ export function CameraFeed({ visionData, compact = false }) {
 
         {/* Standby Placeholder when camera is off */}
         {!isCameraActive && (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '0.65rem',
-            textAlign: 'center',
-            padding: '1rem',
-          }}>
+          <div
+            onClick={handleStartCamera}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.65rem',
+              textAlign: 'center',
+              padding: '1rem',
+              cursor: 'pointer',
+              width: '100%',
+              height: '100%',
+              justifyContent: 'center',
+            }}
+          >
             <div style={{
               width: '58px',
               height: '58px',
               borderRadius: '50%',
-              background: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '2px solid rgba(16, 185, 129, 0.45)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '1.75rem',
+              boxShadow: '0 0 15px rgba(16, 185, 129, 0.25)',
             }}>
-              🚘
+              ▶️
             </div>
             <div>
-              <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.92rem' }}>
-                Driver AI Live Feed
+              <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.95rem' }}>
+                Click to Start AI Camera Tracking
               </div>
-              <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginTop: '0.15rem' }}>
-                FaceMesh facial landmarks & ocular tracker
+              <div style={{ fontSize: '0.76rem', color: '#38bdf8', marginTop: '0.2rem' }}>
+                Live MediaPipe Ocular & Yawn Detection
               </div>
             </div>
           </div>
