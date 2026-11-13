@@ -305,7 +305,7 @@ export function Dashboard() {
           {/* TAB 1: DASHBOARD (EXACT COCKPIT LAYOUT FROM REFERENCE IMAGE) */}
           {activeTab === 'dashboard' && (
             <>
-              {/* TOP TIER: 3 Columns (Live Video + Radial Gauge + Heart Rate/HRV Stack) */}
+              {/* TOP TIER: 3 Columns (Live Video + Radial Gauge + Heart Rate Card) */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'minmax(280px, 1.1fr) minmax(240px, 1fr) minmax(220px, 0.95fr)',
@@ -322,7 +322,7 @@ export function Dashboard() {
                   <RiskGaugeCard riskState={statusData?.risk_state} />
                 </div>
 
-                {/* 3. Stacked Biometric Mini-Cards (Heart Rate + HRV) */}
+                {/* 3. Biometric Telemetry Card (Heart Rate BPM) */}
                 <div>
                   <BiometricMetricsCard
                     sensorData={statusData?.sensor}
